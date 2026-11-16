@@ -43,6 +43,20 @@ function App() {
   const predictiveValue = data?.predicted_solar_kwh_per_m2_day ?? data?.predicted_solar_val ?? 0;
   const thresholdStatus = data?.threshold_met === true ? 'Above 5 kWh/m²/day threshold' : 'Below 5 kWh/m²/day threshold';
 
+  const weatherIcon =
+    Number(predictiveValue) >= 5
+      ? '☀️'
+      : Number(predictiveValue) >= 2
+        ? '☁️'
+        : '🌧️';
+
+  const weatherLabel =
+    Number(predictiveValue) >= 5
+      ? 'High solar potential'
+      : Number(predictiveValue) >= 2
+        ? 'Moderate solar potential'
+        : 'Low solar potential';
+
   const cards = data
     ? [
         {
@@ -52,12 +66,12 @@ function App() {
         },
         {
           label: 'Next-day prediction',
-          value: formatValue(predictiveValue, ' kWh/m²/day'),
+          value: `${weatherIcon} ${formatValue(predictiveValue, ' kWh/m²/day')}`,
           sublabel: `Target date: ${data.tomorrow_date || '—'}`,
         },
         {
           label: 'Threshold check',
-          value: thresholdStatus,
+          value: `${weatherIcon} ${thresholdStatus}`,
           sublabel: `Limit: ${data.threshold_kwh_per_m2_day ?? 5} kWh/m²/day`,
         },
         {
@@ -120,6 +134,10 @@ function App() {
                   The model compares the most recently observed Vancouver solar value with the next-day target date
                   and estimates the expected irradiance using the trained linear regression model.
                 </p>
+                <div className="weather-badge" aria-label={`Forecast weather indicator: ${weatherLabel}`}>
+                  <span className="weather-icon">{weatherIcon}</span>
+                  <span>{weatherLabel}</span>
+                </div>
                 <ul>
                   <li>Current observed value: {formatValue(data?.current_solar_val, ' W/m²')}</li>
                   <li>Next-day target date: {data?.tomorrow_date || '—'}</li>
@@ -139,6 +157,29 @@ function App() {
                   <span>City: {data?.city || 'Vancouver, Canada'}</span>
                   <span>Feature: {data?.feature || 'allsky_sfc_sw_dwn'}</span>
                 </div>
+              </article>
+            </section>
+
+            <section className="risk-grid">
+              <article className="detail-card risk-card">
+                <h3>Model error estimate</h3>
+                <p>
+                  This forecast is a statistical estimate and not a guarantee of actual daylight output. Weather,
+                  cloud cover, seasonal variation, and sensor differences can cause the model to under- or overstate
+                  solar performance. If the prediction is wrong, expected operational costs may include missed energy
+                  generation, lower battery efficiency, oversupply or undersupply planning errors, and extra dispatch
+                  or balancing costs.
+                </p>
+              </article>
+
+              <article className="detail-card risk-card">
+                <h3>Liability notice</h3>
+                <p>
+                  Any financial, operational, or investment decisions made using these predictions are made at the user’s
+                  own risk. VanSolar provides informational estimates only and is not liable for losses, damages,
+                  missed revenue, poor investment choices, or any downstream financial consequences resulting from the
+                  use of these predictions.
+                </p>
               </article>
             </section>
           </>

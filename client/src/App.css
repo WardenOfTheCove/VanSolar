@@ -168,10 +168,38 @@
   line-height: 1.8;
 }
 
+.weather-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 14px;
+  padding: 8px 12px;
+  background: #dfe8f2;
+  border: 1px solid rgba(21, 33, 56, 0.08);
+  border-radius: 999px;
+  color: #15314d;
+  font-weight: 700;
+}
+
+.weather-icon {
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
 .meta-list {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.risk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.risk-card {
+  background: #f3f7fb;
 }
 
 .alert-box,
