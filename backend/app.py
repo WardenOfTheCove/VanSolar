@@ -45,6 +45,7 @@ NASA_POWER_URL = 'https://power.larc.nasa.gov/api/temporal/daily/point'
 VANCOUVER_LATITUDE = 49.2827
 VANCOUVER_LONGITUDE = -123.1207
 NASA_POWER_PARAMETER = 'ALLSKY_SFC_SW_DWN'
+SOLAR_THRESHOLD_KWH_PER_M2_DAY = 5.0
 TARGET_LIKE = {
     'solar_rad',
     'solar_radiation',
@@ -169,6 +170,25 @@ def _validate_nasa_power_dataset(df: pd.DataFrame, source_text: str = '') -> Non
         )
 
 
+def _to_kwh_per_m2_day(value):
+    numeric_value = float(value)
+    if abs(numeric_value) > 100:
+        return numeric_value / 1000.0
+    return numeric_value
+
+
+def _build_threshold_summary(predicted_solar_val):
+    predicted_kwh = _to_kwh_per_m2_day(predicted_solar_val)
+    threshold_met = predicted_kwh >= SOLAR_THRESHOLD_KWH_PER_M2_DAY
+    return {
+        'predicted_solar_kwh_per_m2_day': round(predicted_kwh, 4),
+        'threshold_kwh_per_m2_day': float(SOLAR_THRESHOLD_KWH_PER_M2_DAY),
+        'threshold_met': threshold_met,
+        'threshold_status': 'Above threshold' if threshold_met else 'Below threshold',
+        'recommendation': 'Good solar potential for the next day.' if threshold_met else 'Solar production is below the 5 kWh/m²/day threshold.',
+    }
+
+
 def _build_vancouver_next_day_forecast():
     df = _fetch_nasa_power_vancouver_dataframe(365)
     if df.empty:
@@ -191,6 +211,7 @@ def _build_vancouver_next_day_forecast():
     predicted_solar_val = float(model.predict(np.array([[current_solar_val]]))[0])
     coefficient = float(getattr(model, 'coef_', [0.0])[0]) if hasattr(model, 'coef_') else 0.0
     intercept = float(getattr(model, 'intercept_', 0.0)) if hasattr(model, 'intercept_') else 0.0
+    threshold_summary = _build_threshold_summary(predicted_solar_val)
 
     return {
         'status': 'success',
@@ -207,6 +228,11 @@ def _build_vancouver_next_day_forecast():
         'tomorrow_date': target_date.strftime('%Y-%m-%d'),
         'tomorrow_val': round(current_solar_val, 4),
         'predicted_solar_val': round(predicted_solar_val, 4),
+        'predicted_solar_kwh_per_m2_day': threshold_summary['predicted_solar_kwh_per_m2_day'],
+        'threshold_kwh_per_m2_day': threshold_summary['threshold_kwh_per_m2_day'],
+        'threshold_met': threshold_summary['threshold_met'],
+        'threshold_status': threshold_summary['threshold_status'],
+        'recommendation': threshold_summary['recommendation'],
         'predictions': [round(float(value), 4) for value in model.predict(clean_df['allsky_sfc_sw_dwn'].tail(10).to_numpy().reshape(-1, 1))[:10]],
     }
 
@@ -382,6 +408,7 @@ async def predict(file: UploadFile | None = File(default=None)):
         current_solar_val = float(df['allsky_sfc_sw_dwn'].iloc[-1]) if 'allsky_sfc_sw_dwn' in {str(col).lower() for col in df.columns} else float(df.select_dtypes(include=[np.number]).iloc[:, 0].iloc[-1])
         latest_date = pd.to_datetime(df['date']).iloc[-1] if 'date' in {str(col).lower() for col in df.columns} else pd.Timestamp.utcnow().normalize()
         predicted_solar_val = float(model.predict(np.array([[current_solar_val]]))[0])
+        threshold_summary = _build_threshold_summary(predicted_solar_val)
         next_day_date = latest_date + pd.Timedelta(days=1)
 
         return {
@@ -398,6 +425,11 @@ async def predict(file: UploadFile | None = File(default=None)):
             'tomorrow_date': next_day_date.strftime('%Y-%m-%d'),
             'tomorrow_val': round(current_solar_val, 4),
             'predicted_solar_val': round(predicted_solar_val, 4),
+            'predicted_solar_kwh_per_m2_day': threshold_summary['predicted_solar_kwh_per_m2_day'],
+            'threshold_kwh_per_m2_day': threshold_summary['threshold_kwh_per_m2_day'],
+            'threshold_met': threshold_summary['threshold_met'],
+            'threshold_status': threshold_summary['threshold_status'],
+            'recommendation': threshold_summary['recommendation'],
             'predictions': [round(float(value), 4) for value in model.predict(df.select_dtypes(include=[np.number]).tail(10).to_numpy())[:10]],
         }
     except Exception as exc:

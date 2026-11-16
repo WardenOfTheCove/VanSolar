@@ -40,6 +40,9 @@ function App() {
     loadForecast();
   }, []);
 
+  const predictiveValue = data?.predicted_solar_kwh_per_m2_day ?? data?.predicted_solar_val ?? 0;
+  const thresholdStatus = data?.threshold_met === true ? 'Above 5 kWh/m²/day threshold' : 'Below 5 kWh/m²/day threshold';
+
   const cards = data
     ? [
         {
@@ -49,13 +52,13 @@ function App() {
         },
         {
           label: 'Next-day prediction',
-          value: formatValue(data.predicted_solar_val, ' W/m²'),
+          value: formatValue(predictiveValue, ' kWh/m²/day'),
           sublabel: `Target date: ${data.tomorrow_date || '—'}`,
         },
         {
-          label: 'Model intercept',
-          value: formatValue(data.intercept),
-          sublabel: 'Local linear regression output',
+          label: 'Threshold check',
+          value: thresholdStatus,
+          sublabel: `Limit: ${data.threshold_kwh_per_m2_day ?? 5} kWh/m²/day`,
         },
         {
           label: 'Model coefficient',
@@ -91,7 +94,7 @@ function App() {
             <section className="hero-panel">
               <div>
                 <p className="hero-label">Forecast</p>
-                <h2>{data ? `${formatValue(data.predicted_solar_val, ' W/m²')} predicted` : '—'}</h2>
+                <h2>{data ? `${formatValue(predictiveValue, ' kWh/m²/day')} predicted` : '—'}</h2>
               </div>
               <div className="hero-meta">
                 <span>{data?.city || 'Vancouver, Canada'}</span>
@@ -120,7 +123,8 @@ function App() {
                 <ul>
                   <li>Current observed value: {formatValue(data?.current_solar_val, ' W/m²')}</li>
                   <li>Next-day target date: {data?.tomorrow_date || '—'}</li>
-                  <li>Predicted next-day value: {formatValue(data?.predicted_solar_val, ' W/m²')}</li>
+                  <li>Predicted next-day value: {formatValue(data?.predicted_solar_kwh_per_m2_day ?? data?.predicted_solar_val, ' kWh/m²/day')}</li>
+                  <li>Threshold comparison: {data?.threshold_met === true ? 'Meets' : 'Below'} the 5 kWh/m²/day threshold</li>
                 </ul>
               </article>
 
