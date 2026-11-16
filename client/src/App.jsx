@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import './App.css';
 
-const API_URL = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'}/api/vancouver-solar`;
+const API_URL = '/api/vancouver-solar';
 
 function formatValue(value, suffix = '') {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
